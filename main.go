@@ -59,8 +59,8 @@ func main() {
 		}
 
 		for coinName, priceInfo := range data {
-			fmt.Println(coinName, ":", priceInfo.USD)
-			cryptoPriceGauge.WithLabelValues(coinName).Set(priceInfo.USD)
+			fmt.Println(coinName, ":", priceInfo.USD)                     // Print to terminal
+			cryptoPriceGauge.WithLabelValues(coinName).Set(priceInfo.USD) // Update Prometheus gauge
 		}
 	}
 }
