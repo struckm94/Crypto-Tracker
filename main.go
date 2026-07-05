@@ -7,16 +7,37 @@ import (
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 type CryptoPrice struct {
 	USD float64 `json:"usd"`
 }
 
+var (
+	cryptoPriceGauge = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "crypto_price_usd",
+			Help: "Current price of cryptocurrencies in USD",
+		},
+		[]string{"coin"},
+	)
+)
+
 func main() {
+
+	prometheus.MustRegister(cryptoPriceGauge)
+
 	ticker := time.NewTicker(15 * time.Second)
 	defer ticker.Stop()
 	var get_price = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usd"
+
+	go func() {
+		http.Handle("/metrics", promhttp.Handler())
+		http.ListenAndServe(":8080", nil)
+	}()
 
 	for range ticker.C {
 		// Perform the GET request to the CoinGecko API
@@ -39,6 +60,7 @@ func main() {
 
 		for coinName, priceInfo := range data {
 			fmt.Println(coinName, ":", priceInfo.USD)
+			cryptoPriceGauge.WithLabelValues(coinName).Set(priceInfo.USD)
 		}
 	}
 }
